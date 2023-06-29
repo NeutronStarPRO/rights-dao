@@ -19,6 +19,20 @@ export default {
         image: {
             size: "Image size error",
             format: "Image format error",
+        },
+        browser: {
+            block: "Pop-ups may be blocked by your browser, please check "
+        },
+        amountMore: "Amount entered should be greater than {amount}",
+        decimalNoMore: "The number of decimal places entered should be less than {amount}",
+    },
+    wallet: {
+        transfer: {
+            success: "Transfer Succeeded.",
+            error: "Transfer Failed"
+        },
+        connect: {
+            error: "Wallet is not Connected."
         }
     },
     update: {
@@ -46,6 +60,11 @@ export default {
         notFound: "Target user information not found."
     },
     tip: {
-        comingSoon: "Coming Soon"
+        comingSoon: "Coming Soon",
+        notClose: "Do not close the page until it is complete"
+    },
+    claim: {
+        success: "All achievements have been Claimed.",
+        sbt: "SBT has been Claimed to the account."
     }
 };

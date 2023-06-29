@@ -27,7 +27,7 @@
                                 {{t('common.search')}}
                             </el-button>
                         </div>
-                        <el-card class="post-card" v-for="(item,inex) in showList"
+                        <el-card class="post-card" v-for="(item,index) in showList"
                                  @click="onClick(Number(item.id))">
                             <el-row justify="space-between">
                                 <el-col :span="20" class="card-info">
@@ -38,17 +38,20 @@
                                             :size="avatarSize"/>
                                     <div class="text">
                                         <div class="title">
-                                            <span @click="onClick(Number(item.id))">{{item.title}}</span>
+                                            <span>{{item.title}}</span>
                                             <span class="post-status enable"
                                                   v-if="item.status.Enable!==undefined">{{t('common.status.enable')}}</span>
                                             <span class="post-status completed"
                                                   v-else-if="item.status.Completed!==undefined">{{t('common.status.completed')}}</span>
                                             <span class="post-status closed" v-else-if="item.status.Closed!==undefined">{{t('common.status.closed')}}</span>
+                                            <BountyTag :bounty_sum="item.bounty_sum"/>
                                         </div>
                                         <div class="info">
                                             <Username :principalId="item.author.toString()"
                                                       :username="item.authorData && item.authorData.name!==''
-                                                      ? item.authorData.name: ''"/>
+                                                      ? item.authorData.name: ''"
+                                                      :sbtLevel="item.authorData && item.authorData.claimed_sbt[0] ?
+                                                      item.authorData.claimed_sbt[0].medal.level : 0"/>
                                             <span>|</span>
                                             <span class="createTime">{{getTimeF(Number(item.created_at))}}</span>
                                         </div>
@@ -62,7 +65,13 @@
                                     <CategoryButton :category="item.category"/>
                                 </el-col>
                             </el-row>
-                            <div @click="onClick(Number(item.id))" class="content">
+                            <div class="adopted" v-if="item.answer.length>0">
+                                <el-icon>
+                                    <Flag/>
+                                </el-icon>
+                                {{t('post.adopt.already')}}
+                            </div>
+                            <div class="content">
                                 {{item.content.content}}
                             </div>
                             <div class="footer">
@@ -139,9 +148,10 @@
         ElSkeleton,
         ElSkeletonItem
     } from 'element-plus/es';
-    import { Search } from '@element-plus/icons-vue'
+    import { Search,Flag } from '@element-plus/icons-vue'
     import Avatar from '@/components/common/Avatar.vue';
     import Username from '@/components/common/Username.vue';
+    import BountyTag from '@/components/common/BountyTag.vue';
     import CategoryButton from '@/components/common/CategoryButton.vue';
     import LikeButton from '@/components/common/LikeButton.vue';
     import RightMenu from '@/components/menu/RightMenu.vue';
@@ -216,6 +226,7 @@
     const searchPage = () => {
         pageNum.value = 0;
         list.value = [];
+        init(true)
     }
 
     const handleSelect = (key: string, keyPath: string[]) => {
@@ -278,6 +289,14 @@
         justify-content: center;
         position: relative;
         padding-top: 24px;
+        .adopted {
+            font-size: 12px;
+            color: #9eadb6;
+            .el-icon {
+                color: rgb(103, 194, 58);
+                font-size: 14px;
+            }
+        }
         .left-menu {
             border-radius: var(--el-card-border-radius);
             border-right: 0;

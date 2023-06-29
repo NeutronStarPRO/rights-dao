@@ -1,4 +1,21 @@
 import type { Principal } from '@dfinity/principal';
+export interface Achievement {
+  'issued_bounty' : AchievementItem,
+  'post_comment' : AchievementItem,
+  'reputation' : AchievementItem,
+  'active_user' : AchievementItem,
+  'received_bounty' : AchievementItem,
+}
+export interface AchievementItem {
+  'completion' : bigint,
+  'description' : string,
+  'level' : MedalLevel,
+  'experience' : bigint,
+  'target' : bigint,
+  'keyword' : string,
+}
+export type AchievementResult = { 'Ok' : Achievement } |
+  { 'Err' : UserError };
 export type BoolPostResult = { 'Ok' : boolean } |
   { 'Err' : PostError };
 export type BoolUserResult = { 'Ok' : boolean } |
@@ -47,6 +64,14 @@ export type CurrencyUnit = { 'BTC' : null } |
   { 'ETH' : null } |
   { 'ICP' : null } |
   { 'USDT' : null };
+export interface Experience {
+  'owner' : Principal,
+  'level' : bigint,
+  'experience' : bigint,
+  'next_level' : bigint,
+}
+export type ExperienceResult = { 'Ok' : Experience } |
+  { 'Err' : UserError };
 export type GovernanceError = {
     'GovernanaceMemberActionFormatInvalid' : null
   } |
@@ -125,10 +150,29 @@ export interface LikeProfile {
   'author' : Principal,
 }
 export type LikeProfileOption = [] | [LikeProfile];
+export type MedalLevel = { 'Diamond' : null } |
+  { 'Gold' : null } |
+  { 'Platinum' : null } |
+  { 'Bronze' : null } |
+  { 'Commoner' : null } |
+  { 'Silver' : null };
+export interface MedalMeta {
+  'photo_url' : string,
+  'name' : MedalLevel,
+  'level' : bigint,
+  'experience' : bigint,
+}
+export type MedalMetaOption = [] | [MedalMeta];
+export type MedalMetaVector = Array<MedalMeta>;
 export interface PageQuery {
   'page_size' : bigint,
   'querystring' : string,
   'page_num' : bigint,
+}
+export interface PostAddBountyCommand {
+  'post_id' : bigint,
+  'nonce' : bigint,
+  'amount' : bigint,
 }
 export interface PostAnswerCommand { 'post_id' : bigint, 'answer_id' : bigint }
 export interface PostAnswerCommentCommand {
@@ -181,9 +225,11 @@ export interface PostEditCommand {
 export type PostError = { 'PostAlreadyExists' : null } |
   { 'PostWithCommentCantDelete' : null } |
   { 'UserNotCommentAuthor' : null } |
+  { 'PostBountyAlreadyExists' : null } |
   { 'PostCommentNotFound' : null } |
   { 'AnswerWithCommentCantDelete' : null } |
   { 'PostAlreadyCompleted' : null } |
+  { 'PostBountyNotFound' : null } |
   { 'PostNotFound' : null } |
   { 'PostUnAuthorizedOperation' : null } |
   { 'UserNotFound' : null } |
@@ -210,6 +256,8 @@ export interface PostInfo {
   'updated_at' : bigint,
   'participants' : Array<string>,
   'content' : RichText,
+  'comment_count' : [] | [bigint],
+  'bounty_sum' : [] | [bigint],
   'created_at' : bigint,
   'end_time' : [] | [bigint],
   'answer' : [] | [bigint],
@@ -258,6 +306,7 @@ export interface PostProfile {
   'participants' : Array<string>,
   'content' : RichText,
   'comment_count' : [] | [bigint],
+  'bounty_sum' : [] | [bigint],
   'created_at' : bigint,
   'end_time' : [] | [bigint],
   'answer' : [] | [bigint],
@@ -276,6 +325,11 @@ export type PostResult = { 'Ok' : PostProfile } |
 export type PostStatus = { 'Enable' : null } |
   { 'Closed' : null } |
   { 'Completed' : null };
+export interface PostUpdateBountyCommand {
+  'nonce' : bigint,
+  'bounty_id' : bigint,
+  'amount' : bigint,
+}
 export type ProposalExecuteArgs = {
     'AddGovernanceMember' : GovernanceMemberAddArgs
   };
@@ -297,6 +351,12 @@ export interface ReputationSummary { 'id' : Principal, 'amount' : bigint }
 export type ReputationSummaryResult = { 'Ok' : ReputationSummary } |
   { 'Err' : ReputationError };
 export interface RichText { 'content' : string, 'format' : string }
+export interface Sbt {
+  'id' : bigint,
+  'medal' : MedalMeta,
+  'owner' : Principal,
+  'created_at' : bigint,
+}
 export type U64GovernanceResult = { 'Ok' : bigint } |
   { 'Err' : GovernanceError };
 export interface UserEditCommand {
@@ -315,18 +375,25 @@ export type UserError = { 'UserAlreadyExists' : null } |
   { 'UserLocationTooLong' : null } |
   { 'UserNameTooLong' : null } |
   { 'UserAlreadyDisable' : null } |
+  { 'ExperienceNotEnough' : null } |
   { 'AnonymousNotAllowRegistering' : null } |
+  { 'AchievementNotFound' : null } |
   { 'UserBiographyTooLong' : null } |
+  { 'UserNotSame' : null } |
+  { 'AchievementMustClaimFirst' : null } |
   { 'UserNotFound' : null };
 export interface UserProfile {
   'id' : bigint,
   'status' : UserStatus,
   'owner' : Principal,
   'interests' : Array<string>,
+  'claimed_sbt' : [] | [Sbt],
   'avatar_uri' : string,
   'memo' : string,
   'name' : string,
   'biography' : string,
+  'wallet_principal' : [] | [Principal],
+  'achievement' : [] | [Achievement],
   'created_at' : bigint,
   'email' : string,
   'avatar_id' : bigint,
@@ -351,8 +418,12 @@ export interface _SERVICE {
   'add_comment_comment' : (arg_0: CommentCommentCommand) => Promise<
       BoolPostResult
     >,
+  'add_post_bounty' : (arg_0: PostAddBountyCommand) => Promise<
+      CreatePostResult
+    >,
   'add_post_comment' : (arg_0: PostCommentCommand) => Promise<BoolPostResult>,
   'add_post_event' : (arg_0: PostEventCommand) => Promise<BoolPostResult>,
+  'all_sbt_medal' : () => Promise<MedalMetaVector>,
   'auto_register_user' : () => Promise<UserResult>,
   'cancel_like_post' : (arg_0: PostLikeCommand) => Promise<BoolPostResult>,
   'cancel_like_post_answer' : (arg_0: PostAnswerLikeCommand) => Promise<
@@ -361,12 +432,15 @@ export interface _SERVICE {
   'change_post_status' : (arg_0: PostChangeStatusCommand) => Promise<
       BoolPostResult
     >,
+  'claim_achievement' : () => Promise<BoolUserResult>,
+  'claim_sbt' : () => Promise<BoolUserResult>,
   'create_post' : (arg_0: PostCreateCommand) => Promise<CreatePostResult>,
   'delete_post' : (arg_0: PostIdCommand) => Promise<BoolPostResult>,
   'delete_post_answer' : (arg_0: PostAnswerCommand) => Promise<BoolPostResult>,
   'delete_post_answer_comment' : (arg_0: PostAnswerCommentCommand) => Promise<
       BoolPostResult
     >,
+  'delete_wallet' : () => Promise<BoolUserResult>,
   'disable_user' : (arg_0: Principal) => Promise<BoolUserResult>,
   'edit_post' : (arg_0: PostEditCommand) => Promise<BoolPostResult>,
   'edit_user' : (arg_0: UserEditCommand) => Promise<BoolUserResult>,
@@ -389,9 +463,14 @@ export interface _SERVICE {
   'get_reputation' : (arg_0: ReputationGetQuery) => Promise<
       ReputationSummaryResult
     >,
+  'get_sbt_medal' : (arg_0: bigint) => Promise<MedalMetaOption>,
   'get_self' : () => Promise<UserResult>,
+  'get_self_achievement' : () => Promise<AchievementResult>,
+  'get_self_experience' : () => Promise<ExperienceResult>,
   'get_top_likes_posts' : () => Promise<PostProfileListResult>,
   'get_user' : (arg_0: Principal) => Promise<UserResult>,
+  'get_user_achievement' : (arg_0: Principal) => Promise<AchievementResult>,
+  'get_user_experience' : (arg_0: Principal) => Promise<ExperienceResult>,
   'greet' : (arg_0: string) => Promise<string>,
   'is_like_post' : (arg_0: PostLikeCommand) => Promise<BoolPostResult>,
   'is_like_post_answer' : (arg_0: PostAnswerLikeCommand) => Promise<
@@ -421,5 +500,9 @@ export interface _SERVICE {
       arg_0: GovernanceMemberAddCommand,
     ) => Promise<ProposalSubmitResult>,
   'submit_post_answer' : (arg_0: PostAnswerCommand) => Promise<BoolPostResult>,
+  'update_post_bounty' : (arg_0: PostUpdateBountyCommand) => Promise<
+      BoolPostResult
+    >,
+  'update_wallet' : (arg_0: Principal) => Promise<BoolUserResult>,
   'vote_governance_proposal' : (arg_0: VoteArgs) => Promise<VoteResult>,
 }

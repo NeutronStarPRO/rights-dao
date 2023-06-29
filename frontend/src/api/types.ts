@@ -1,4 +1,4 @@
-import {Principal} from "@dfinity/principal/lib/cjs";
+import { Principal } from "@dfinity/principal/lib/cjs";
 
 // 后端的错误
 export type ApiError = {
@@ -78,6 +78,9 @@ export type ApiUserInfo = {
     avatar_id: bigint; //头像id，暂时没用
     biography: string; //类似于个人签名
     interests: string[]; //兴趣，类似于标签
+    wallet_principal: string[]; //用户绑定的钱包
+    achievement: [AchievementResult];//成就完成详情
+    claimed_sbt: [ClaimedMedalMeta] //收集的SBT，opt格式，只会有一个。
 };
 
 export type ApiPost = {
@@ -93,6 +96,7 @@ export type ApiPost = {
     answer: number[];
     participants: string[];//期待参与的人
     end_time: [number]; //结束时间  opt格式，类似于[1000]，数组中只有一个数据。
+    bounty_sum: [number]; //问题的赏金 opt格式
     events?: ApiPostTimeline[];
     likes_count: number; //点赞数
     ask_for_money: any;
@@ -177,4 +181,54 @@ export type ApiDaoArgs = {
     content: RichText;
     deadline: number;
     action: string; // action目前只有Add,Delete两个值，对应增加删除管理员
+};
+
+//勋章等级
+export type MedalLevel = {
+    Commoner: null, //
+    Bronze: null, //青铜
+    Silver: null,
+    Gold: null,
+    Platinum: null,
+    Diamond: null
+}
+//勋章数据表
+export type MedalMeta = {
+    name: MedalLevel;
+    level: number;
+    experience: bigint;
+    photo_url: string;
+};
+
+//用户收集的勋章数据表
+export type ClaimedMedalMeta = {
+    created_at: number,
+    id: number,
+    medal: MedalMeta,
+    owner: Principal
+};
+
+//用户等级
+export type ApiUserLevel = {
+    owner: Principal;
+    level: bigint; //等级
+    experience: bigint; //当前经验值
+    next_level: string; //升到下一级所需要的经验总量
+};
+
+export type ApiAchievement = {
+    description: string; //描述
+    experience: bigint; // 达成后获得的经验值
+    completion: bigint;// 当前完成的次数
+    target: bigint;// 完成成就需要完成的次数
+    keyword: string; //关键词
+    level: MedalLevel;
+};
+
+export type AchievementResult = {
+    active_user: ApiAchievement, //活跃用户（发贴n次）
+    post_comment: ApiAchievement, //问题获得回复
+    issued_bounty: ApiAchievement, //给赏金
+    received_bounty: ApiAchievement, //收到赏金
+    reputation: ApiAchievement, //积分成就
 };

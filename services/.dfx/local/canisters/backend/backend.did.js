@@ -11,15 +11,23 @@ export const idlFactory = ({ IDL }) => {
     'PostAlreadyExists' : IDL.Null,
     'PostWithCommentCantDelete' : IDL.Null,
     'UserNotCommentAuthor' : IDL.Null,
+    'PostBountyAlreadyExists' : IDL.Null,
     'PostCommentNotFound' : IDL.Null,
     'AnswerWithCommentCantDelete' : IDL.Null,
     'PostAlreadyCompleted' : IDL.Null,
+    'PostBountyNotFound' : IDL.Null,
     'PostNotFound' : IDL.Null,
     'PostUnAuthorizedOperation' : IDL.Null,
     'UserNotFound' : IDL.Null,
     'UserNotAnswerAuthor' : IDL.Null,
   });
   const BoolPostResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : PostError });
+  const PostAddBountyCommand = IDL.Record({
+    'post_id' : IDL.Nat64,
+    'nonce' : IDL.Nat64,
+    'amount' : IDL.Nat64,
+  });
+  const CreatePostResult = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : PostError });
   const PostCommentCommand = IDL.Record({
     'post_id' : IDL.Nat64,
     'content' : RichText,
@@ -29,16 +37,55 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Text,
     'event_time' : IDL.Nat64,
   });
+  const MedalLevel = IDL.Variant({
+    'Diamond' : IDL.Null,
+    'Gold' : IDL.Null,
+    'Platinum' : IDL.Null,
+    'Bronze' : IDL.Null,
+    'Commoner' : IDL.Null,
+    'Silver' : IDL.Null,
+  });
+  const MedalMeta = IDL.Record({
+    'photo_url' : IDL.Text,
+    'name' : MedalLevel,
+    'level' : IDL.Nat64,
+    'experience' : IDL.Nat64,
+  });
+  const MedalMetaVector = IDL.Vec(MedalMeta);
   const UserStatus = IDL.Variant({ 'Enable' : IDL.Null, 'Disable' : IDL.Null });
+  const Sbt = IDL.Record({
+    'id' : IDL.Nat64,
+    'medal' : MedalMeta,
+    'owner' : IDL.Principal,
+    'created_at' : IDL.Nat64,
+  });
+  const AchievementItem = IDL.Record({
+    'completion' : IDL.Nat64,
+    'description' : IDL.Text,
+    'level' : MedalLevel,
+    'experience' : IDL.Nat64,
+    'target' : IDL.Nat64,
+    'keyword' : IDL.Text,
+  });
+  const Achievement = IDL.Record({
+    'issued_bounty' : AchievementItem,
+    'post_comment' : AchievementItem,
+    'reputation' : AchievementItem,
+    'active_user' : AchievementItem,
+    'received_bounty' : AchievementItem,
+  });
   const UserProfile = IDL.Record({
     'id' : IDL.Nat64,
     'status' : UserStatus,
     'owner' : IDL.Principal,
     'interests' : IDL.Vec(IDL.Text),
+    'claimed_sbt' : IDL.Opt(Sbt),
     'avatar_uri' : IDL.Text,
     'memo' : IDL.Text,
     'name' : IDL.Text,
     'biography' : IDL.Text,
+    'wallet_principal' : IDL.Opt(IDL.Principal),
+    'achievement' : IDL.Opt(Achievement),
     'created_at' : IDL.Nat64,
     'email' : IDL.Text,
     'avatar_id' : IDL.Nat64,
@@ -50,8 +97,11 @@ export const idlFactory = ({ IDL }) => {
     'UserLocationTooLong' : IDL.Null,
     'UserNameTooLong' : IDL.Null,
     'UserAlreadyDisable' : IDL.Null,
+    'ExperienceNotEnough' : IDL.Null,
     'AnonymousNotAllowRegistering' : IDL.Null,
     'UserBiographyTooLong' : IDL.Null,
+    'UserNotSame' : IDL.Null,
+    'AchievementMustClaimFirst' : IDL.Null,
     'UserNotFound' : IDL.Null,
   });
   const UserResult = IDL.Variant({ 'Ok' : UserProfile, 'Err' : UserError });
@@ -65,6 +115,7 @@ export const idlFactory = ({ IDL }) => {
     'status' : IDL.Text,
     'description' : IDL.Text,
   });
+  const BoolUserResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : UserError });
   const PostCreateCommand = IDL.Record({
     'title' : IDL.Text,
     'participants' : IDL.Vec(IDL.Text),
@@ -73,7 +124,6 @@ export const idlFactory = ({ IDL }) => {
     'category' : IDL.Text,
     'photos' : IDL.Vec(IDL.Nat64),
   });
-  const CreatePostResult = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : PostError });
   const PostIdCommand = IDL.Record({ 'id' : IDL.Nat64 });
   const PostAnswerCommand = IDL.Record({
     'post_id' : IDL.Nat64,
@@ -84,7 +134,6 @@ export const idlFactory = ({ IDL }) => {
     'answer_id' : IDL.Nat64,
     'comment_id' : IDL.Nat64,
   });
-  const BoolUserResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : UserError });
   const PostEditCommand = IDL.Record({
     'id' : IDL.Nat64,
     'status' : IDL.Text,
@@ -252,6 +301,7 @@ export const idlFactory = ({ IDL }) => {
     'participants' : IDL.Vec(IDL.Text),
     'content' : RichText,
     'comment_count' : IDL.Opt(IDL.Nat64),
+    'bounty_sum' : IDL.Opt(IDL.Nat64),
     'created_at' : IDL.Nat64,
     'end_time' : IDL.Opt(IDL.Nat64),
     'answer' : IDL.Opt(IDL.Nat64),
@@ -279,6 +329,8 @@ export const idlFactory = ({ IDL }) => {
     'updated_at' : IDL.Nat64,
     'participants' : IDL.Vec(IDL.Text),
     'content' : RichText,
+    'comment_count' : IDL.Opt(IDL.Nat64),
+    'bounty_sum' : IDL.Opt(IDL.Nat64),
     'created_at' : IDL.Nat64,
     'end_time' : IDL.Opt(IDL.Nat64),
     'answer' : IDL.Opt(IDL.Nat64),
@@ -301,6 +353,21 @@ export const idlFactory = ({ IDL }) => {
   const ReputationSummaryResult = IDL.Variant({
     'Ok' : ReputationSummary,
     'Err' : ReputationError,
+  });
+  const MedalMetaOption = IDL.Opt(MedalMeta);
+  const AchievementResult = IDL.Variant({
+    'Ok' : Achievement,
+    'Err' : UserError,
+  });
+  const Experience = IDL.Record({
+    'owner' : IDL.Principal,
+    'level' : IDL.Nat64,
+    'experience' : IDL.Nat64,
+    'next_level' : IDL.Nat64,
+  });
+  const ExperienceResult = IDL.Variant({
+    'Ok' : Experience,
+    'Err' : UserError,
   });
   const PostProfileListResult = IDL.Variant({
     'Ok' : IDL.Vec(PostProfile),
@@ -392,6 +459,11 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : IDL.Nat64,
     'Err' : GovernanceError,
   });
+  const PostUpdateBountyCommand = IDL.Record({
+    'nonce' : IDL.Nat64,
+    'bounty_id' : IDL.Nat64,
+    'amount' : IDL.Nat64,
+  });
   const VoteArgs = IDL.Record({ 'vote' : Vote, 'proposal_id' : IDL.Nat64 });
   const VoteResult = IDL.Variant({
     'Ok' : ProposalState,
@@ -403,8 +475,14 @@ export const idlFactory = ({ IDL }) => {
         [BoolPostResult],
         [],
       ),
+    'add_post_bounty' : IDL.Func(
+        [PostAddBountyCommand],
+        [CreatePostResult],
+        [],
+      ),
     'add_post_comment' : IDL.Func([PostCommentCommand], [BoolPostResult], []),
     'add_post_event' : IDL.Func([PostEventCommand], [BoolPostResult], []),
+    'all_sbt_medal' : IDL.Func([], [MedalMetaVector], []),
     'auto_register_user' : IDL.Func([], [UserResult], []),
     'cancel_like_post' : IDL.Func([PostLikeCommand], [BoolPostResult], []),
     'cancel_like_post_answer' : IDL.Func(
@@ -417,6 +495,8 @@ export const idlFactory = ({ IDL }) => {
         [BoolPostResult],
         [],
       ),
+    'claim_achievement' : IDL.Func([], [BoolUserResult], []),
+    'claim_sbt' : IDL.Func([], [BoolUserResult], []),
     'create_post' : IDL.Func([PostCreateCommand], [CreatePostResult], []),
     'delete_post' : IDL.Func([PostIdCommand], [BoolPostResult], []),
     'delete_post_answer' : IDL.Func([PostAnswerCommand], [BoolPostResult], []),
@@ -425,6 +505,7 @@ export const idlFactory = ({ IDL }) => {
         [BoolPostResult],
         [],
       ),
+    'delete_wallet' : IDL.Func([], [BoolUserResult], []),
     'disable_user' : IDL.Func([IDL.Principal], [BoolUserResult], []),
     'edit_post' : IDL.Func([PostEditCommand], [BoolPostResult], []),
     'edit_user' : IDL.Func([UserEditCommand], [BoolUserResult], []),
@@ -459,9 +540,14 @@ export const idlFactory = ({ IDL }) => {
         [ReputationSummaryResult],
         [],
       ),
+    'get_sbt_medal' : IDL.Func([IDL.Nat64], [MedalMetaOption], []),
     'get_self' : IDL.Func([], [UserResult], []),
+    'get_self_achievement' : IDL.Func([], [AchievementResult], []),
+    'get_self_experience' : IDL.Func([], [ExperienceResult], []),
     'get_top_likes_posts' : IDL.Func([], [PostProfileListResult], []),
     'get_user' : IDL.Func([IDL.Principal], [UserResult], []),
+    'get_user_achievement' : IDL.Func([IDL.Principal], [AchievementResult], []),
+    'get_user_experience' : IDL.Func([IDL.Principal], [ExperienceResult], []),
     'greet' : IDL.Func([IDL.Text], [IDL.Text], ['query']),
     'is_like_post' : IDL.Func([PostLikeCommand], [BoolPostResult], []),
     'is_like_post_answer' : IDL.Func(
@@ -503,6 +589,12 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'submit_post_answer' : IDL.Func([PostAnswerCommand], [BoolPostResult], []),
+    'update_post_bounty' : IDL.Func(
+        [PostUpdateBountyCommand],
+        [BoolPostResult],
+        [],
+      ),
+    'update_wallet' : IDL.Func([IDL.Principal], [BoolUserResult], []),
     'vote_governance_proposal' : IDL.Func([VoteArgs], [VoteResult], []),
   });
 };

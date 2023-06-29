@@ -1,4 +1,3 @@
-
 use candid::{CandidType, Deserialize};
 use thiserror::Error;
 
@@ -20,4 +19,12 @@ pub enum UserError {
     UserLocationTooLong,
     #[error("Anonymous not allow registering")]
     AnonymousNotAllowRegistering,
+    #[error("Not the same User")]
+    UserNotSame,
+    #[error("Experience not enough")]
+    ExperienceNotEnough,
+    #[error("Must claim achievement first")]
+    AchievementMustClaimFirst,
+    #[error("Achievement nof found")]
+    AchievementNotFound,
 }

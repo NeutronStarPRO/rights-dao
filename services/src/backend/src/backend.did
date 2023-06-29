@@ -23,6 +23,10 @@ type UserError = variant {
     UserBiographyTooLong;
     UserLocationTooLong;
     AnonymousNotAllowRegistering;
+    UserNotSame;
+    ExperienceNotEnough;
+    AchievementMustClaimFirst;
+    AchievementNotFound;
 };
 
 type UserProfile = record {
@@ -38,6 +42,9 @@ type UserProfile = record {
     memo : text;
     status : UserStatus;
     created_at : nat64;
+    wallet_principal : opt principal;
+    achievement: opt Achievement;
+    claimed_sbt: opt Sbt;
 };
 
 type UserStatus = variant {
@@ -55,6 +62,57 @@ type UserEditCommand = record {
     location: text;
     memo: text;
     status: UserStatus;
+};
+
+type Experience = record {
+    owner: principal;
+    experience: nat64;
+    level: nat64;
+    next_level: nat64;
+};
+
+type ExperienceResult = variant {
+    Ok: Experience;
+    Err: UserError;
+};
+
+type Sbt = record {
+    id: nat64;
+    owner: principal;
+    medal: MedalMeta;
+    created_at: nat64;
+};
+
+type Achievement = record {
+    // 活跃用户
+    active_user: AchievementItem;
+    // 问题回复
+    post_comment: AchievementItem;
+    // 积分（声望）成就
+    reputation: AchievementItem;
+    // 发出赏金
+    issued_bounty: AchievementItem;
+    // 收到赏金
+    received_bounty: AchievementItem;
+};
+
+type AchievementItem = record {
+    // 成就关键词
+    keyword: text;
+    // 成就简短描述
+    description: text;
+    // 完成值(例如 1条帖子，1条回复，1个积分，1 ICP等)
+    completion: nat64;
+    // 成就对应的经验值
+    experience: nat64;
+    // 成就完成级别
+    level: MedalLevel;
+    target: nat64;
+};
+
+type AchievementResult = variant {
+    Ok: Achievement;
+    Err: UserError;
 };
 
 type BoolUserResult = variant {
@@ -80,6 +138,7 @@ type PostProfile = record {
     created_at: nat64;
     updated_at: nat64;
     comment_count: opt nat64;
+    bounty_sum: opt nat64;
 };
 
 type PostInfo = record {
@@ -97,6 +156,8 @@ type PostInfo = record {
     status: PostStatus;
     created_at: nat64;
     updated_at: nat64;
+    comment_count: opt nat64;
+    bounty_sum: opt nat64;
 };
 
 type PostCreateCommand = record {
@@ -211,6 +272,18 @@ type PostEventCommand = record {
     description: text;
 };
 
+type PostAddBountyCommand = record {
+    post_id: nat64;
+    amount: nat64;
+    nonce: nat64;
+};
+
+type PostUpdateBountyCommand = record {
+    bounty_id: nat64;
+    amount: nat64;
+    nonce: nat64;
+};
+
 type PostIdCommand = record {
     id: nat64;
 };
@@ -248,6 +321,8 @@ type PostError = variant {
     UserNotAnswerAuthor;
     AnswerWithCommentCantDelete;
     UserNotCommentAuthor;
+    PostBountyAlreadyExists;
+    PostBountyNotFound;
 };
 
 type BoolPostResult = variant {
@@ -526,6 +601,25 @@ type LikeProfile = record {
     updated_at: nat64;
 };
 
+type MedalMetaOption = opt MedalMeta;
+type MedalMetaVector = vec MedalMeta;
+
+type MedalMeta = record {
+    name: MedalLevel;
+    level: nat64;
+    experience: nat64;
+    photo_url: text;
+};
+
+type MedalLevel = variant {
+    Commoner;
+    Bronze;
+    Silver;
+    Gold;
+    Platinum;
+    Diamond;
+};
+
 service : {
  
     "greet": (text) -> (text) query;
@@ -537,6 +631,19 @@ service : {
     "disable_user" : (principal) -> (BoolUserResult);
     "get_user" : (principal) -> (UserResult);
     "get_self" : () -> (UserResult);
+    "update_wallet" : (principal) -> (BoolUserResult);
+    "delete_wallet" : () -> (BoolUserResult);
+
+    "get_user_experience" : (principal) -> (ExperienceResult);
+    "get_self_experience" : () -> (ExperienceResult);
+
+    "claim_achievement" : () -> (BoolUserResult);
+    "get_user_achievement" : (principal) -> (AchievementResult);
+    "get_self_achievement" : () -> (AchievementResult);
+
+    "get_sbt_medal": (nat64) -> (MedalMetaOption);
+    "all_sbt_medal": () -> (MedalMetaVector);
+    "claim_sbt" : () -> (BoolUserResult);
 
     "create_post" : (PostCreateCommand) -> (CreatePostResult);
     "edit_post" : (PostEditCommand) -> (BoolPostResult);
@@ -562,6 +669,8 @@ service : {
     "submit_post_answer" : (PostAnswerCommand) -> (BoolPostResult);
     "delete_post_answer" : (PostAnswerCommand) -> (BoolPostResult);
     "delete_post_answer_comment" : (PostAnswerCommentCommand) -> (BoolPostResult);
+    "add_post_bounty" : (PostAddBountyCommand) -> (CreatePostResult);
+    "update_post_bounty" : (PostUpdateBountyCommand) -> (BoolPostResult);
 
     "like_post" : (PostLikeCommand) -> (BoolPostResult);
     "cancel_like_post" : (PostLikeCommand) -> (BoolPostResult);

@@ -9,29 +9,29 @@ type StreamingStrategy = variant {
                                 (StreamingCallbackHttpResponse) query;
                               token: StreamingCallbackToken;
                             };};
-type StreamingCallbackToken = 
+type StreamingCallbackToken =
  record {
    content_encoding: text;
    index: nat;
    key: text;
    sha256: opt blob;
  };
-type StreamingCallbackHttpResponse = 
+type StreamingCallbackHttpResponse =
  record {
    body: blob;
    token: opt StreamingCallbackToken;
  };
-type Result_4 = 
+type Result_4 =
  variant {
    err: Error;
    ok: opt Picture;
  };
-type Result_3 = 
+type Result_3 =
  variant {
    err: Error;
    ok: opt PictureProfile;
  };
-type Result_2 = 
+type Result_2 =
  variant {
    err: Error;
    ok: vec record {
@@ -39,28 +39,28 @@ type Result_2 =
              Picture;
            };
  };
-type Result_1 = 
+type Result_1 =
  variant {
    err: Error;
    ok: nat;
  };
-type Result = 
+type Result =
  variant {
    err: Error;
    ok: PictureId;
  };
-type Picture__1 = 
+type Picture__1 =
  record {
    content: blob;
    fileType: text;
  };
-type PictureStatus = 
+type PictureStatus =
  variant {
    disable;
    enable;
    pending;
  };
-type PictureProfile = 
+type PictureProfile =
  record {
    createdAt: Timestamp;
    createdBy: UserPrincipal__1;
@@ -73,31 +73,31 @@ type PictureProfile =
  };
 type PictureId__1 = nat;
 type PictureId = nat;
-type Picture = 
+type Picture =
  record {
    content: blob;
    fileType: text;
  };
-type HttpResponse = 
+type HttpResponse =
  record {
    body: blob;
    headers: vec HeaderField;
    status_code: nat16;
    streaming_strategy: opt StreamingStrategy;
  };
-type HttpRequest = 
+type HttpRequest =
  record {
    body: blob;
    headers: vec HeaderField;
    method: text;
    url: text;
  };
-type HeaderField = 
+type HeaderField =
  record {
    text;
    text;
  };
-type Error = 
+type Error =
  variant {
    picAlreadyExisted;
    picNotFound;

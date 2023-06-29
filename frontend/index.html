@@ -32,9 +32,14 @@
     </noscript>
     <div id="app"></div>
     <script type="module">
-      import { Buffer } from "buffer"
-      window.global = window
-      window.Buffer = Buffer
+        import {Buffer} from "buffer"
+
+        window.global = window
+        window.Buffer = Buffer
+        // 只在线上使用这个，不然会与astorMe的钱包冲突，无法唤醒Me钱包。
+        if (import.meta.env.MODE === "production") {
+            window.process = {}
+        }
     </script>
     <script type="module" src="/src/main.ts"></script>
     <script type="module" src="//instant.page/5.1.1" integrity="sha384-MWfCL6g1OTGsbSwfuMHc8+8J2u71/LA8dzlIN3ycajckxuZZmF+DNjdm7O6H3PSq"></script>

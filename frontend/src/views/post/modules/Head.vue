@@ -18,11 +18,14 @@
                                         <span class="post-status completed"
                                               v-else-if="post.status.Completed!==undefined">{{t('common.status.completed')}}</span>
                                         <span class="post-status closed" v-else-if="post.status.Closed!==undefined">{{t('common.status.closed')}}</span>
+                                        <BountyTag :bounty_sum="post.bounty_sum"/>
                                     </div>
                                     <div class="info">
                                         <Username :principalId="post.author.toString()"
                                                   :username="author!==undefined && author.name!==''
                                                       ? author.name: ''"
+                                                  :sbtLevel="author && author.claimed_sbt[0] ?
+                                                      author.claimed_sbt[0].medal.level : 0"
                                                 :clickable="true"/>
                                         <span>|</span>
                                         <span class="createTime">{{getTimeF(Number(post.created_at))}}</span>
@@ -62,35 +65,48 @@
                                 </el-button>
                                 <LikeButton :postId="Number(post.id)" :likeCount="Number(post.likes_count)"/>
                             </div>
-                            <div class="right flex-y-center" v-if="isOwner">
+                            <div class="right flex-y-center">
                                 <span v-if="isFold" @click="isFold = !isFold" class="fold">{{t('common.expand')}}</span>
                                 <span v-else @click="isFold = !isFold" class="fold">{{t('common.fold')}}</span>
-                                <DeleteButton :deleteFunction="deleteThisPost" :loading="loading"/>
+                                <DeleteButton v-if="isOwner" :deleteFunction="deleteThisPost" :loading="loading"/>
+                                <el-button v-if="isOwner && post.answer.length===0" @click="dialogVisible=true" type="primary">
+                                    {{t('wallet.bounty.add')}}
+                                </el-button>
                             </div>
                         </div>
                     </div>
                 </el-col>
             </el-row>
         </div>
+        <TransferDialog
+            v-if="dialogVisible"
+            v-model:visible="dialogVisible" :title="t('wallet.bounty.title')"
+            :postId="Number(props.post.id)"
+            :content="t('wallet.bounty.content')"
+            :onlyTransfer="false"
+            targetPrincipal="bsr2o-niaaa-aaaah-qcixq-cai"/>
     </div>
 </template>
 <script lang="ts" setup>
-    import {ref, onMounted, defineProps, PropType, defineEmits, computed} from 'vue';
-    import {ElRow, ElCol, ElButton, ElCard, ElTag, ElIcon, ElDialog} from 'element-plus/es';
-    import {Flag} from '@element-plus/icons-vue';
+    import { ref, onMounted, defineProps, PropType, defineEmits, computed } from 'vue';
+    import { ElRow, ElCol, ElButton, ElCard, ElTag, ElIcon, ElDialog } from 'element-plus/es';
+    import { Flag } from '@element-plus/icons-vue';
     import Avatar from '@/components/common/Avatar.vue';
     import Username from '@/components/common/Username.vue';
+    import BountyTag from '@/components/common/BountyTag.vue';
     import CategoryButton from '@/components/common/CategoryButton.vue';
     import DeleteButton from '@/components/common/PostDeleteButton.vue';
     import LikeButton from '@/components/common/LikeButton.vue';
-    import {ApiPost, ApiUserInfo} from "@/api/types";
-    import {getTargetUser} from "@/api/user";
-    import {getTimeF} from "@/utils/dates";
-    import {t} from '@/locale';
-    import {deletePost} from "@/api/post";
-    import {showMessageSuccess, showResultError} from "@/utils/message";
-    import {goHome} from "@/router/routers";
-    import {useRouter} from "vue-router";
+    import TransferDialog from '@/components/wallet/TransferDialog.vue';
+    import { ApiPost, ApiUserInfo } from "@/api/types";
+    import { getTargetUser } from "@/api/user";
+    import { getTimeF } from "@/utils/dates";
+    import { t } from '@/locale';
+    import { deletePost } from "@/api/post";
+    import { showMessageSuccess, showResultError } from "@/utils/message";
+    import { goHome } from "@/router/routers";
+    import { useRouter } from "vue-router";
+    import { SumDivision } from "@/api/bounty";
 
     const router = useRouter();
     const author = ref<ApiUserInfo>();
@@ -116,10 +132,6 @@
     onMounted(() => {
         init();
     });
-
-    const fold = () => {
-        isFold.value = !isFold.value;
-    }
 
     const deleteThisPost = (callback) => {
         loading.value = true;
@@ -212,6 +224,11 @@
                 margin-bottom: 15px;
                 display: flex;
                 justify-content: space-between;
+                .right{
+                    button{
+                        margin-left: 5px;
+                    }
+                }
             }
         }
     }

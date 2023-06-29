@@ -64,7 +64,6 @@ export default defineConfig(({ command, mode }) => {
             alias: {
                 ...canistersAlias, // canister 接口文件位置的映射
                 '@': path.resolve(__dirname, 'src'), // @符号要解析
-                '@admin': path.resolve(__dirname, '../admin3/src'), // @符号要解析
                 '~/': `${path.resolve(__dirname, 'src')}/`, // element-plus 可能要用
                 // "vue-i18n": "vue-i18n/dist/vue-i18n.cjs.js", // 浏览器总是有 warning，这样就不显示了
             },
@@ -74,18 +73,19 @@ export default defineConfig(({ command, mode }) => {
             minify: isBuild ? 'esbuild' : false, // 默认为 Esbuild，它比 terser 快 20-40 倍，压缩率只差 1%-2%
             terserOptions: {
                 compress: {
-                    drop_console:
-                        configMode == ConfigMode.production
-                            ? true // 线上部署的生产打包一定不包含
-                            : viteEnv.VITE_DROP_CONSOLE === undefined
-                            ? isBuild
-                            : viteEnv.VITE_DROP_CONSOLE, // 生产环境去除 console
-                    drop_debugger:
-                        configMode == ConfigMode.production
-                            ? true // 线上部署的生产打包一定不包含
-                            : viteEnv.VITE_DROP_DEBUGGER === undefined
-                            ? isBuild
-                            : viteEnv.VITE_DROP_DEBUGGER, // 生产环境去除 debugger
+                    // 线上环境移除console
+                    // drop_console:
+                    //     configMode == ConfigMode.production
+                    //         ? true // 线上部署的生产打包一定不包含
+                    //         : viteEnv.VITE_DROP_CONSOLE === undefined
+                    //         ? isBuild
+                    //         : viteEnv.VITE_DROP_CONSOLE, // 生产环境去除 console
+                    // drop_debugger:
+                    //     configMode == ConfigMode.production
+                    //         ? true // 线上部署的生产打包一定不包含
+                    //         : viteEnv.VITE_DROP_DEBUGGER === undefined
+                    //         ? isBuild
+                    //         : viteEnv.VITE_DROP_DEBUGGER, // 生产环境去除 debugger
                 },
             },
             rollupOptions: {

@@ -1,10 +1,18 @@
 import {clearCacheData, getCache, TTL} from '@/common/cache';
 import {getCurrentPrincipal, getBackend} from './canister_pool';
-import {ApiProfilePost, ApiResult, ApiResultByPage, ApiUserInfo, GovernanceMember, UserReputation} from "@/api/types";
+import {
+    AchievementResult,
+    ApiProfilePost,
+    ApiResult,
+    ApiResultByPage,
+    ApiUserInfo, ApiUserLevel,
+    GovernanceMember, MedalMeta,
+    UserReputation
+} from "@/api/types";
 import {Principal} from "@dfinity/principal/lib/cjs";
 
 const userTTL = TTL.day1; //用户自身信息缓存时长。
-const ohterUserTTL = TTL.day1; //其他用户信息缓存时长。
+const otherUserTTL = TTL.day1; //其他用户信息缓存时长。
 
 // 注册用户接口，将当前登录用户 id 登记在后端 应当有缓存 不需要返回值
 export async function registerUser(principalId: string): Promise<ApiResult<string>> {
@@ -58,7 +66,7 @@ export async function getTargetUser(principal: string): Promise<ApiResult<any | 
         execute: () => getBackend().get_user(Principal.fromText(principal)),
         // 记得部署之前改成方法参数
         // execute: () => getBackend().get_user(Principal.fromText("2vxsx-fae")),
-        ttl: ohterUserTTL,
+        ttl: otherUserTTL,
         isLocal: true, // 需要本地存储
     });
 }
@@ -69,7 +77,7 @@ export async function getTargetUserNewCache(principal: string): Promise<ApiResul
         key: 'USER_INFO_' + principal.toUpperCase(),
         execute: () => getBackend().get_user(Principal.fromText(principal)),
         cache: false,
-        ttl: ohterUserTTL,
+        ttl: otherUserTTL,
         isLocal: true, // 需要本地存储
     });
 }
@@ -112,7 +120,6 @@ export async function editUserSelf(user: any | ApiUserInfo): Promise<ApiResult<b
 // 获取目标用户声望值（积分）
 export async function getUserReputation(principalId: string): Promise<ApiResult<UserReputation>> {
     return getBackend().get_reputation({
-        // user: "2vxsx-fae"
         user: principalId
     })
 }
@@ -120,4 +127,44 @@ export async function getUserReputation(principalId: string): Promise<ApiResult<
 // 获取用户是否为管理员，直接返回Boolean变量
 export async function getUserIsAdmin(principalId: string): Promise<ApiResult<GovernanceMember>> {
     return await getBackend().get_governance_member(principalId)
+}
+
+// 用户绑定钱包
+export async function userConnectWallet(principalId: string): Promise<ApiResult<Boolean>> {
+    return await getBackend().update_wallet(Principal.fromText(principalId))
+}
+
+// 用户取消绑定钱包
+export async function userDisConnectWallet(): Promise<ApiResult<Boolean>> {
+    return await getBackend().delete_wallet()
+}
+
+// 获取用户成就列表
+export async function getUserAchievement(principalId: string): Promise<ApiResult<AchievementResult>> {
+    return await getBackend().get_user_achievement(Principal.fromText(principalId))
+}
+
+// claim所有用户成就
+export async function claimUserAchievement(): Promise<ApiResult<Boolean>> {
+    return await getBackend().claim_achievement()
+}
+
+// claim用户的SBT
+export async function claimUserSBT(): Promise<ApiResult<Boolean>> {
+    return await getBackend().claim_sbt()
+}
+
+// 获取sbt列表数据
+export async function getSBTInfo(): Promise<Array<MedalMeta>> {
+    return await getCache({
+        key: 'SBT_ALL_INFO',
+        execute: () => getBackend().all_sbt_medal(),
+        ttl: otherUserTTL,
+        isLocal: true, // 需要本地存储
+    });
+}
+
+// 获取用户的sbt等级
+export async function getUserSBTLevel(principalId: string): Promise<ApiResult<ApiUserLevel>> {
+    return await getBackend().get_user_experience(Principal.fromText(principalId))
 }

@@ -1,8 +1,4 @@
-use std::{
-    collections::VecDeque, 
-    string::ParseError, 
-    str::FromStr,
-};
+use std::{collections::VecDeque, str::FromStr, string::ParseError};
 
 use candid::{CandidType, Deserialize, Principal};
 
@@ -28,11 +24,22 @@ pub struct PostProfile {
     pub updated_at: Timestamp,
     pub comments: Vec<PostComment>,
     pub comment_count: Option<usize>,
+    pub bounty_sum: Option<u64>,
 }
 
 impl PostProfile {
-    pub fn new(id: u64, author: Principal, title: String, content: RichText, category: Category, photos: Vec<u64>, participants: Vec<String>, 
-            end_time: Option<Timestamp>, status: PostStatus, created_at: Timestamp) -> Self {
+    pub fn new(
+        id: u64,
+        author: Principal,
+        title: String,
+        content: RichText,
+        category: Category,
+        photos: Vec<u64>,
+        participants: Vec<String>,
+        end_time: Option<Timestamp>,
+        status: PostStatus,
+        created_at: Timestamp,
+    ) -> Self {
         Self {
             id,
             author,
@@ -51,6 +58,7 @@ impl PostProfile {
             updated_at: created_at,
             comments: vec![],
             comment_count: None,
+            bounty_sum: None,
         }
     }
 
@@ -101,7 +109,12 @@ impl PostProfile {
     }
 
     // 检查指定的 caller 是否指定回答中指定评论的 author
-    pub fn valid_answer_comment_author(&self, answer_id: u64, comment_id: u64, caller: Principal) -> bool {
+    pub fn valid_answer_comment_author(
+        &self,
+        answer_id: u64,
+        comment_id: u64,
+        caller: Principal,
+    ) -> bool {
         for answer in &self.comments {
             if answer.id == answer_id && answer.is_answer_comment_author(comment_id, caller) {
                 return true;
@@ -121,7 +134,7 @@ impl PostProfile {
         for answer in &mut self.comments {
             if answer.id == answer_id {
                 let comments = &mut answer.comments;
-                
+
                 comments.retain(|c| c.id != comment_id)
             }
         }
@@ -134,8 +147,8 @@ impl PostProfile {
 
     // 点赞加1
     pub fn sub_like_count_one(&mut self) {
-        if self.likes_count > 0 { 
-            self.likes_count -= 1; 
+        if self.likes_count > 0 {
+            self.likes_count -= 1;
         }
     }
 
@@ -150,13 +163,16 @@ impl PostProfile {
                         return;
                     }
                 }
-            },
+            }
             None => {
-                if is_like { self.add_like_count_one() } else { self.sub_like_count_one() }
+                if is_like {
+                    self.add_like_count_one()
+                } else {
+                    self.sub_like_count_one()
+                }
             }
         }
     }
-
 }
 
 #[derive(Debug, Clone, CandidType, Deserialize)]
@@ -175,9 +191,11 @@ pub struct PostInfo {
     pub status: PostStatus,
     pub created_at: Timestamp,
     pub updated_at: Timestamp,
+    pub comment_count: Option<usize>,
+    pub bounty_sum: Option<u64>,
 }
 
-impl From<PostProfile> for PostInfo{
+impl From<PostProfile> for PostInfo {
     fn from(profile: PostProfile) -> Self {
         Self {
             id: profile.id,
@@ -194,6 +212,8 @@ impl From<PostProfile> for PostInfo{
             status: profile.status,
             created_at: profile.created_at,
             updated_at: profile.updated_at,
+            comment_count: profile.comment_count,
+            bounty_sum: profile.bounty_sum,
         }
     }
 }
@@ -205,13 +225,13 @@ pub struct RichText {
 }
 
 #[derive(Debug, Clone, Copy, CandidType, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum  Category {
+pub enum Category {
     Tech,
     Law,
     Safeguard,
     Blacklist,
     Other,
-}   
+}
 
 impl FromStr for Category {
     type Err = ParseError;
@@ -222,7 +242,7 @@ impl FromStr for Category {
             "tech" => Ok(Category::Tech),
             "safeguard" => Ok(Category::Safeguard),
             "blacklist" => Ok(Category::Blacklist),
-            _ => Ok(Category::Other)
+            _ => Ok(Category::Other),
         }
     }
 }
@@ -281,13 +301,19 @@ pub struct PostEvent {
 }
 
 impl PostEvent {
-    pub fn new(post_id: u64, event_time: Timestamp, description: String, author: Principal, created_at: Timestamp) -> Self {
+    pub fn new(
+        post_id: u64,
+        event_time: Timestamp,
+        description: String,
+        author: Principal,
+        created_at: Timestamp,
+    ) -> Self {
         Self {
             post_id,
             event_time,
-            description, 
+            description,
             author,
-            created_at
+            created_at,
         }
     }
 }
@@ -309,10 +335,26 @@ pub struct PostCreateCommand {
 }
 
 impl PostCreateCommand {
-    pub fn build_profile(self, id: u64, owner: Principal, status: PostStatus, now: Timestamp) -> PostProfile {
-        PostProfile::new(id, owner, self.title, self.content, self.category.parse::<Category>().unwrap(), self.photos, self.participants, self.end_time, status, now)
+    pub fn build_profile(
+        self,
+        id: u64,
+        owner: Principal,
+        status: PostStatus,
+        now: Timestamp,
+    ) -> PostProfile {
+        PostProfile::new(
+            id,
+            owner,
+            self.title,
+            self.content,
+            self.category.parse::<Category>().unwrap(),
+            self.photos,
+            self.participants,
+            self.end_time,
+            status,
+            now,
+        )
     }
-
 }
 
 #[derive(Debug, Clone, CandidType, Deserialize)]
@@ -398,8 +440,8 @@ pub struct PostPageOtherQuery {
 pub struct PostComment {
     pub id: u64,
     pub post_id: u64,
-    pub comment_id: Option<u64>,   // 回答 id
-    pub quote_id: Option<u64>,      // 引用评论id
+    pub comment_id: Option<u64>, // 回答 id
+    pub quote_id: Option<u64>,   // 引用评论id
     pub content: RichText,
     pub author: Principal,
     pub status: CommentStatus,
@@ -410,7 +452,6 @@ pub struct PostComment {
 }
 
 impl PostComment {
-
     pub fn is_answer_author(&self, caller: Principal) -> bool {
         self.author == caller
     }
@@ -433,18 +474,26 @@ impl PostComment {
     pub fn add_like_count_one(&mut self) {
         match &mut self.likes_count {
             Some(lc) => *lc += 1,
-            None => self.likes_count = Some(1)
+            None => self.likes_count = Some(1),
         }
         // self.likes_count.iter_mut().for_each(|c| *c += 1)
     }
 
     // 点赞加1
     pub fn sub_like_count_one(&mut self) {
-        self.likes_count.iter_mut().for_each(|c| if *c > 0 { *c -= 1 })
+        self.likes_count.iter_mut().for_each(|c| {
+            if *c > 0 {
+                *c -= 1
+            }
+        })
     }
 
     pub fn mutate_likes_count(&mut self, is_like: bool) {
-        if is_like { self.add_like_count_one() } else { self.sub_like_count_one() }
+        if is_like {
+            self.add_like_count_one()
+        } else {
+            self.sub_like_count_one()
+        }
     }
 }
 
@@ -453,8 +502,8 @@ pub struct CommentSummary {
     pub id: u64,
     pub post_id: u64,
     pub post_title: String,
-    pub comment_id: Option<u64>,   // 回答 id
-    pub quote_id: Option<u64>,      // 引用评论id
+    pub comment_id: Option<u64>, // 回答 id
+    pub quote_id: Option<u64>,   // 引用评论id
     pub content: RichText,
     pub author: Principal,
     pub status: CommentStatus,
@@ -527,10 +576,10 @@ pub struct PostEventCommand {
 
 impl PostEventCommand {
     pub fn build_event(self, author: Principal, now: Timestamp) -> PostEvent {
-        PostEvent { 
+        PostEvent {
             post_id: self.post_id,
             event_time: self.event_time,
-            description: self.description, 
+            description: self.description,
             author,
             created_at: now,
         }
@@ -547,7 +596,7 @@ pub struct PostAnswerCommand {
 pub struct PostAnswerCommentCommand {
     pub post_id: u64,
     pub answer_id: u64,
-    pub comment_id: u64
+    pub comment_id: u64,
 }
 
 /// 点赞功能
@@ -561,13 +610,19 @@ pub struct LikeProfile {
     pub post_id: PostId,
     pub author: Principal,
     pub answer_id: Option<u64>,
-    pub is_like: bool,      // true 表示点赞，false 表示取消点赞
+    pub is_like: bool, // true 表示点赞，false 表示取消点赞
     pub created_at: u64,
     pub updated_at: u64,
 }
 
 impl LikeProfile {
-    pub fn new(post_id: PostId, author: Principal, answer_id: Option<u64>, is_like: bool, now: u64) -> Self {
+    pub fn new(
+        post_id: PostId,
+        author: Principal,
+        answer_id: Option<u64>,
+        is_like: bool,
+        now: u64,
+    ) -> Self {
         Self {
             post_id,
             author,
@@ -585,9 +640,10 @@ impl LikeProfile {
 
     pub fn mutate_like(&mut self, is_like: bool, now: u64) {
         self.is_like = is_like;
-        self.updated_at = now;    
+        self.updated_at = now;
     }
 }
+
 /// 点赞 问题
 #[derive(Debug, Clone, CandidType, Deserialize)]
 pub struct PostLikeCommand {
@@ -599,6 +655,88 @@ pub struct PostLikeCommand {
 pub struct PostAnswerLikeCommand {
     pub post_id: PostId,
     pub answer_id: u64,
+}
+
+/// 为问题添加赏金
+#[derive(Debug, Clone, CandidType, Deserialize)]
+pub struct PostAddBountyCommand {
+    pub post_id: PostId,
+    pub amount: u64,
+    pub nonce: u64,
+}
+
+impl PostAddBountyCommand {
+    pub fn build_profile(self, id: u64, author: Principal, created_at: u64) -> PostBountyProfile {
+        PostBountyProfile {
+            id,
+            post_id: self.post_id,
+            amount: self.amount,
+            nonce: self.nonce,
+            status: PostBountyStatus::Unpaid,
+            block_height: None,
+            author,
+            created_at,
+            finalized_at: None,
+            issued_at: None,
+            recipient: None,
+        }
+    }
+}
+
+/// 为问题添加赏金
+#[derive(Debug, Clone, CandidType, Deserialize)]
+pub struct PostUpdateBountyCommand {
+    pub bounty_id: u64,
+    pub amount: u64,
+    pub nonce: u64,
+}
+
+/// 点赞问题的回答
+#[derive(Debug, Clone, CandidType, Deserialize)]
+pub struct PostBountyProfile {
+    pub id: u64,
+    pub post_id: PostId,
+    pub amount: u64, // 此数值比实际放大10000 * 10000倍，1 icp = 10000 * 10000
+    pub nonce: u64,
+    pub status: PostBountyStatus,
+    pub block_height: Option<u64>,
+    pub author: Principal,
+    pub created_at: u64,
+    pub finalized_at: Option<u64>,
+    pub issued_at: Option<u64>,
+    pub recipient: Option<Principal>,
+}
+
+impl PostBountyProfile {
+    pub fn new(
+        id: u64,
+        post_id: u64,
+        amount: u64,
+        nonce: u64,
+        author: Principal,
+        created_at: u64,
+    ) -> Self {
+        Self {
+            id,
+            post_id,
+            amount,
+            nonce,
+            status: PostBountyStatus::Unpaid,
+            block_height: None,
+            author,
+            created_at,
+            finalized_at: None,
+            issued_at: None,
+            recipient: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, CandidType, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PostBountyStatus {
+    Unpaid, // 题主没付款
+    Paid,   // 题主已付款
+    Issued, // 题主已发放赏金给他人
 }
 
 #[cfg(test)]
